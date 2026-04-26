@@ -51,7 +51,11 @@ enum GatewayLaunchAgentManager {
     }
 
     static func set(enabled: Bool, bundlePath: String, port: Int) async -> String? {
-        _ = bundlePath
+        // The bundlePath parameter is intended to provide the path to the OpenClaw executable
+        // for the launchd configuration. It was previously ignored using `_ = bundlePath`.
+        // Now, it's passed as a `--path` argument to the `openclaw gateway install` command.
+        // Additionally, the `--runtime node` flag is removed as OpenClaw is expected to be a
+        // self-contained binary and should be launched directly, not through `node`.
         guard !CommandResolver.connectionModeIsRemote() else {
             self.logger.info("launchd change skipped (remote mode)")
             return nil
@@ -62,14 +66,18 @@ enum GatewayLaunchAgentManager {
         }
 
         if enabled {
-            self.logger.info("launchd enable requested via CLI port=\(port)")
+            self.logger.info("launchd enable requested via CLI port=\(port) bundlePath=\(bundlePath, privacy: .public)")
             return await self.runDaemonCommand([
                 "install",
                 "--force",
                 "--port",
                 "\(port)",
-                "--runtime",
-                "node",
+                "--path", // Provide the explicit path to the openclaw executable
+                bundlePath,
+                // The --runtime node argument is removed. OpenClaw is a compiled binary and
+                // should be executed directly, not as a Node.js script.
+                // "--runtime",
+                // "node",
             ])
         }
 
